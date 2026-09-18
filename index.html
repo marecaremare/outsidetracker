@@ -405,16 +405,70 @@ button{cursor:pointer}
     catch { return null; }
   })();
 
-  const state = saved && Array.isArray(saved.entries)
+  let state = saved && Array.isArray(saved.entries)
     ? saved
     : { entries: [], active: null };
+
+  const DB_NAME = "outside-time-tracker-db";
+  const DB_STORE = "state";
+  const DB_KEY = "main";
+
+  function openDB(){
+    return new Promise((resolve,reject)=>{
+      if(!("indexedDB" in window)) return reject(new Error("IndexedDB unavailable"));
+      const req = indexedDB.open(DB_NAME,1);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if(!db.objectStoreNames.contains(DB_STORE)) db.createObjectStore(DB_STORE);
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async function idbSet(value){
+    try{
+      const db = await openDB();
+      await new Promise((resolve,reject)=>{
+        const tx = db.transaction(DB_STORE,"readwrite");
+        tx.objectStore(DB_STORE).put(value,DB_KEY);
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
+      });
+      db.close();
+      return true;
+    }catch{
+      return false;
+    }
+  }
+
+  async function idbGet(){
+    try{
+      const db = await openDB();
+      const value = await new Promise((resolve,reject)=>{
+        const tx = db.transaction(DB_STORE,"readonly");
+        const req = tx.objectStore(DB_STORE).get(DB_KEY);
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror = () => reject(req.error);
+      });
+      db.close();
+      return value;
+    }catch{
+      return null;
+    }
+  }
 
   const now = new Date();
   let viewYear = now.getFullYear();
   let viewMonth = now.getMonth();
 
   function save(){
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    try{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }catch(e){
+      console.warn("localStorage save failed", e);
+    }
+    idbSet(state);
   }
 
   function iso(d){
@@ -676,9 +730,25 @@ button{cursor:pointer}
     render();
   });
 
+  async function restoreBackup(){
+    if(saved && Array.isArray(saved.entries)) return;
+    const backup = await idbGet();
+    if(backup && Array.isArray(backup.entries)){
+      state = backup;
+      render();
+      updateLive();
+    }
+  }
+
+  window.addEventListener("pagehide", save);
+  document.addEventListener("visibilitychange", ()=>{
+    if(document.visibilityState === "hidden") save();
+  });
+
   setDefaults();
   render();
   updateLive();
+  restoreBackup();
   setInterval(updateLive,30000);
 })();
 </script>
