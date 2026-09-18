@@ -149,7 +149,7 @@ button{cursor:pointer}
   position:absolute;
   top:0;
   bottom:0;
-  left:calc(58px + 10px + 50%);
+  left:calc(50% + 34px);
   border-left:2px dashed #dc2626;
   opacity:.9;
   pointer-events:none;
@@ -158,7 +158,7 @@ button{cursor:pointer}
 .goalLabel{
   position:absolute;
   top:-8px;
-  left:calc(58px + 10px + 50%);
+  left:calc(50% + 34px);
   transform:translate(-50%,-100%);
   font-size:11px;
   font-weight:800;
@@ -298,8 +298,8 @@ button{cursor:pointer}
   .day{grid-template-columns:50px 1fr;gap:8px}
   .track{height:26px}
   .timeLabel,.timeLabelOutside{font-size:10px}
-  .goalLine{left:calc(50px + 8px + 50%)}
-  .goalLabel{left:calc(50px + 8px + 50%)}
+  .goalLine{left:calc(50% + 29px)}
+  .goalLabel{left:calc(50% + 29px)}
 }
 </style>
 </head>
@@ -307,6 +307,9 @@ button{cursor:pointer}
 <div class="app">
   <div class="topbar">
     <div class="brand">Outside <small>time tracker</small></div>
+    <div id="cloudStatus" class="cloudStatus sync">
+      <span class="cloudDot"></span><span id="cloudText">Cloud verbindet…</span>
+    </div>
   </div>
 
   <section class="panel statusPanel">
@@ -400,6 +403,11 @@ button{cursor:pointer}
   const STORAGE_KEY = "outside-monthly-v2";
   const $ = id => document.getElementById(id);
 
+  const SUPABASE_URL = "https://askvcwinkiddszimffex.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_PfNuFW-UOZ1AZ44YWrJCQA_X-pzJh8U";
+  const SYNC_CODE = "EOGfJSAYp4RBH2wW-7m_0auWUrzIKQmL";
+  const TABLE = "outside_tracker";
+
   const saved = (() => {
     try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "null"); }
     catch { return null; }
@@ -407,11 +415,22 @@ button{cursor:pointer}
 
   let state = saved && Array.isArray(saved.entries)
     ? saved
-    : { entries: [], active: null };
+    : { entries: [], active: null, updatedAt: 0 };
+
+  if(!Number.isFinite(state.updatedAt)) state.updatedAt = 0;
 
   const DB_NAME = "outside-time-tracker-db";
   const DB_STORE = "state";
   const DB_KEY = "main";
+  let pushTimer = null;
+  let cloudBusy = false;
+
+  function setCloudStatus(kind,text){
+    const box = $("cloudStatus");
+    if(!box) return;
+    box.className = "cloudStatus " + kind;
+    $("cloudText").textContent = text;
+  }
 
   function openDB(){
     return new Promise((resolve,reject)=>{
@@ -458,17 +477,115 @@ button{cursor:pointer}
     }
   }
 
-  const now = new Date();
-  let viewYear = now.getFullYear();
-  let viewMonth = now.getMonth();
-
-  function save(){
+  function persistLocal(){
     try{
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     }catch(e){
       console.warn("localStorage save failed", e);
     }
     idbSet(state);
+  }
+
+  function apiHeaders(extra={}){
+    return {
+      "apikey": SUPABASE_KEY,
+      "Authorization": "Bearer " + SUPABASE_KEY,
+      "Content-Type": "application/json",
+      ...extra
+    };
+  }
+
+  async function fetchCloudRow(){
+    const url = `${SUPABASE_URL}/rest/v1/${TABLE}?sync_code=eq.${encodeURIComponent(SYNC_CODE)}&select=id,data,updated_at&order=updated_at.desc&limit=1`;
+    const r = await fetch(url, {headers: apiHeaders()});
+    if(!r.ok) throw new Error("Cloud read " + r.status);
+    const rows = await r.json();
+    return rows[0] || null;
+  }
+
+  async function pushCloud(){
+    if(cloudBusy) return;
+    cloudBusy = true;
+    setCloudStatus("sync","Cloud speichert…");
+    try{
+      const row = await fetchCloudRow();
+      const payload = {
+        sync_code: SYNC_CODE,
+        data: state,
+        updated_at: new Date().toISOString()
+      };
+
+      let r;
+      if(row){
+        r = await fetch(`${SUPABASE_URL}/rest/v1/${TABLE}?sync_code=eq.${encodeURIComponent(SYNC_CODE)}`, {
+          method:"PATCH",
+          headers:apiHeaders({"Prefer":"return=minimal"}),
+          body:JSON.stringify(payload)
+        });
+      }else{
+        r = await fetch(`${SUPABASE_URL}/rest/v1/${TABLE}`, {
+          method:"POST",
+          headers:apiHeaders({"Prefer":"return=minimal"}),
+          body:JSON.stringify(payload)
+        });
+      }
+      if(!r.ok) throw new Error("Cloud write " + r.status);
+      setCloudStatus("ok","Cloud gespeichert");
+    }catch(e){
+      console.warn(e);
+      setCloudStatus("err","Cloud offline");
+    }finally{
+      cloudBusy = false;
+    }
+  }
+
+  function scheduleCloudPush(){
+    clearTimeout(pushTimer);
+    pushTimer = setTimeout(pushCloud, 250);
+  }
+
+  async function pullCloud(){
+    if(cloudBusy) return;
+    cloudBusy = true;
+    setCloudStatus("sync","Cloud synchronisiert…");
+    try{
+      const row = await fetchCloudRow();
+      if(!row){
+        cloudBusy = false;
+        await pushCloud();
+        return;
+      }
+      const remote = row.data;
+      const remoteUpdated = Number(remote?.updatedAt || 0);
+      const localUpdated = Number(state?.updatedAt || 0);
+
+      if(remote && Array.isArray(remote.entries) && remoteUpdated > localUpdated){
+        state = remote;
+        persistLocal();
+        render();
+        updateLive();
+      }else if(localUpdated > remoteUpdated){
+        cloudBusy = false;
+        await pushCloud();
+        return;
+      }
+      setCloudStatus("ok","Cloud synchron");
+    }catch(e){
+      console.warn(e);
+      setCloudStatus("err","Cloud offline");
+    }finally{
+      cloudBusy = false;
+    }
+  }
+
+  const now = new Date();
+  let viewYear = now.getFullYear();
+  let viewMonth = now.getMonth();
+
+  function save(){
+    state.updatedAt = Date.now();
+    persistLocal();
+    scheduleCloudPush();
   }
 
   function iso(d){
@@ -735,21 +852,42 @@ button{cursor:pointer}
     const backup = await idbGet();
     if(backup && Array.isArray(backup.entries)){
       state = backup;
+      if(!Number.isFinite(state.updatedAt)) state.updatedAt = 0;
+      persistLocal();
       render();
       updateLive();
     }
   }
 
-  window.addEventListener("pagehide", save);
-  document.addEventListener("visibilitychange", ()=>{
-    if(document.visibilityState === "hidden") save();
+  window.addEventListener("pagehide", ()=>{
+    persistLocal();
+    scheduleCloudPush();
   });
+
+  document.addEventListener("visibilitychange", ()=>{
+    if(document.visibilityState === "hidden"){
+      persistLocal();
+      scheduleCloudPush();
+    }else{
+      pullCloud();
+    }
+  });
+
+  window.addEventListener("online", pullCloud);
 
   setDefaults();
   render();
   updateLive();
-  restoreBackup();
+
+  (async ()=>{
+    await restoreBackup();
+    await pullCloud();
+  })();
+
   setInterval(updateLive,30000);
+  setInterval(()=>{
+    if(document.visibilityState === "visible") pullCloud();
+  },15000);
 })();
 </script>
 </body>
