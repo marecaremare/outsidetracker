@@ -1,0 +1,686 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Outside</title>
+<style>
+:root{
+  --bg:#f4f5f7;
+  --surface:#ffffff;
+  --surface-2:#f7f8fa;
+  --text:#111827;
+  --muted:#747b87;
+  --line:#e7e9ee;
+  --accent:#111827;
+  --accent-soft:#e8ebf0;
+  --fill:#2563eb;
+  --track:#eef1f5;
+  --danger:#c2413b;
+  --shadow:0 1px 2px rgba(16,24,40,.04),0 8px 24px rgba(16,24,40,.04);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  -webkit-font-smoothing:antialiased;
+}
+button,input{font:inherit}
+button{cursor:pointer}
+.app{width:100%;max-width:1180px;margin:0 auto;padding:18px 18px 32px}
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:12px;
+}
+.brand{font-size:20px;font-weight:800;letter-spacing:-.03em}
+.brand small{font-size:12px;color:var(--muted);font-weight:600;margin-left:8px}
+.panel{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:20px;
+  box-shadow:var(--shadow);
+}
+.statusPanel{
+  padding:18px 20px;
+  display:grid;
+  grid-template-columns:220px 1fr;
+  gap:26px;
+  align-items:end;
+}
+.statusEyebrow{
+  font-size:12px;
+  font-weight:700;
+  color:var(--muted);
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+.statusTitle{
+  margin-top:5px;
+  font-size:32px;
+  line-height:1;
+  font-weight:800;
+  letter-spacing:-.04em;
+}
+.statusMeta{
+  margin-top:9px;
+  color:var(--muted);
+  font-size:13px;
+}
+.controls{
+  display:grid;
+  grid-template-columns:1fr 1fr auto;
+  gap:12px;
+  align-items:end;
+}
+.field label{
+  display:block;
+  color:var(--muted);
+  font-size:12px;
+  font-weight:650;
+  margin-bottom:7px;
+}
+.field input{
+  width:100%;
+  height:46px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:0 13px;
+  background:#fff;
+  color:var(--text);
+  outline:none;
+}
+.field input:focus{
+  border-color:#b8bec8;
+  box-shadow:0 0 0 3px rgba(17,24,39,.05);
+}
+.btn{
+  border:0;
+  height:46px;
+  padding:0 18px;
+  border-radius:12px;
+  font-weight:750;
+}
+.btnPrimary{background:var(--accent);color:#fff}
+.btnGhost{background:var(--surface-2);color:var(--text);border:1px solid var(--line)}
+.btnDanger{background:#fff;color:var(--danger);border:1px solid #f0d5d2}
+.message{grid-column:1/-1;font-size:12px;color:var(--muted);min-height:16px;margin-top:-2px}
+.liveBox{
+  margin-top:14px;
+  padding:12px 14px;
+  border-radius:12px;
+  background:var(--surface-2);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.liveBox span{font-size:12px;color:var(--muted)}
+.liveBox strong{font-size:20px;letter-spacing:-.02em}
+
+.monthPanel{margin-top:12px;padding:18px 20px 20px}
+.monthHeader{
+  display:grid;
+  grid-template-columns:44px 1fr 44px;
+  align-items:center;
+}
+.iconBtn{
+  width:40px;height:40px;border-radius:11px;
+  border:1px solid var(--line);
+  background:#fff;color:var(--text);
+  font-size:18px;
+}
+.monthCenter{text-align:center}
+.monthCenter h2{
+  margin:0;
+  font-size:24px;
+  letter-spacing:-.035em;
+}
+.monthCenter p{margin:5px 0 0;color:var(--muted);font-size:13px}
+.chartMeta{margin-top:12px;display:flex;align-items:center;justify-content:space-between;min-height:26px;padding:0 2px}
+.chartMeta .selected{font-size:13px;font-weight:700}
+.chartMeta .hint{font-size:12px;color:var(--muted)}
+.chartWrap{
+  margin-top:8px;
+  padding-bottom:2px;
+}
+.chartShell{
+  position:relative;
+}
+.goalLine{
+  position:absolute;
+  top:0;
+  bottom:0;
+  left:calc(58px + 10px + 50%);
+  border-left:2px dashed #dc2626;
+  opacity:.9;
+  pointer-events:none;
+  z-index:1;
+}
+.goalLabel{
+  position:absolute;
+  top:-8px;
+  left:calc(58px + 10px + 50%);
+  transform:translate(-50%,-100%);
+  font-size:11px;
+  font-weight:800;
+  color:#dc2626;
+  background:#fff;
+  padding:1px 6px;
+  border-radius:999px;
+  pointer-events:none;
+  z-index:2;
+}
+.chart{
+  position:relative;
+  z-index:2;
+  width:100%;
+  display:grid;
+  gap:10px;
+  padding:2px 0 0;
+}
+.day{
+  width:100%;
+  display:grid;
+  grid-template-columns:58px 1fr;
+  align-items:center;
+  gap:10px;
+  border:0;
+  background:transparent;
+  padding:0;
+  color:inherit;
+  outline:none;
+}
+.dayNum{
+  font-size:12px;
+  font-weight:750;
+  color:#737b88;
+  text-align:right;
+  white-space:nowrap;
+}
+.track{
+  position:relative;
+  width:100%;
+  height:28px;
+  background:var(--track);
+  border-radius:10px;
+  overflow:hidden;
+  box-shadow:inset 0 0 0 1px rgba(17,24,39,.025);
+}
+.sleepSegment{
+  position:absolute;
+  top:0;
+  right:0;
+  bottom:0;
+  width:33.3333%;
+  background:rgba(139,92,246,.16);
+  pointer-events:none;
+  z-index:0;
+}
+.fill{
+  position:absolute;
+  left:0;
+  top:0;
+  bottom:0;
+  background:var(--fill);
+  border-radius:10px;
+  transition:width .18s ease,background .16s ease;
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  min-width:0;
+  overflow:hidden;
+  padding:0 3px;
+  box-sizing:border-box;
+  z-index:1;
+}
+.timeLabel{
+  display:block;
+  font-size:11px;
+  line-height:1;
+  font-weight:850;
+  color:#fff;
+  white-space:nowrap;
+  pointer-events:none;
+  width:100%;
+  text-align:center;
+  overflow:hidden;
+}
+
+.day:hover .track{background:#e8ecf2}
+.day:hover .fill{background:#1d4ed8}
+.day.selected .track{background:#e6ebf3}
+.day.selected .fill{background:#1d4ed8}
+.day.selected .dayNum{color:var(--text);font-weight:850}
+.chartLegend{display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid var(--line);color:var(--muted);font-size:11px}
+.legendKey{display:flex;align-items:center;gap:7px}
+.dotTrack,.dotFill{width:14px;height:8px;border-radius:3px}
+.dotTrack{background:var(--track)}
+.dotFill{background:var(--fill)}
+
+.historyPanel{margin-top:12px;padding:16px 20px}
+.historyHeader{display:flex;justify-content:space-between;align-items:center}
+.historyHeader h3{margin:0;font-size:18px;letter-spacing:-.02em}
+.history{
+  margin-top:14px;
+  display:grid;
+  gap:8px;
+}
+.empty{
+  color:var(--muted);
+  font-size:13px;
+  padding:16px 0 2px;
+}
+.entry{
+  display:grid;
+  grid-template-columns:1fr auto auto;
+  align-items:center;
+  gap:14px;
+  padding:12px 0;
+  border-top:1px solid var(--line);
+}
+.entry:first-child{border-top:0}
+.entryDate{font-size:13px;font-weight:750}
+.entryTime{font-size:12px;color:var(--muted);margin-top:2px}
+.entryDuration{font-size:14px;font-weight:800}
+.linkBtn{
+  border:0;background:transparent;color:var(--muted);
+  font-size:12px;font-weight:700;padding:8px;
+}
+.linkBtn:hover{color:var(--danger)}
+
+.hidden{display:none!important}
+
+@media(max-width:1200px){.app{padding:16px 14px 28px}}
+@media(max-width:760px){
+  .app{padding:14px 10px 28px}
+  .statusPanel{grid-template-columns:1fr;gap:18px;padding:18px}
+  .controls{grid-template-columns:1fr}
+  .monthPanel,.historyPanel{padding:18px}
+  .day{grid-template-columns:50px 1fr;gap:8px}
+  .track{height:26px}
+  .timeLabel,.timeLabelOutside{font-size:10px}
+  .goalLine{left:calc(50px + 8px + 50%)}
+  .goalLabel{left:calc(50px + 8px + 50%)}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div class="brand">Outside <small>time tracker</small></div>
+  </div>
+
+  <section class="panel statusPanel">
+    <div>
+      <div class="statusEyebrow">Status</div>
+      <div id="statusTitle" class="statusTitle">Zuhause</div>
+      <div id="statusMeta" class="statusMeta">Bereit für den nächsten Ausgang.</div>
+
+      <div id="liveBox" class="liveBox hidden">
+        <span>Aktuell draußen</span>
+        <strong id="liveDuration">0h 00m</strong>
+      </div>
+    </div>
+
+    <div>
+      <form id="leaveForm" class="controls">
+        <div class="field">
+          <label for="leaveDate">Datum</label>
+          <input id="leaveDate" type="date" required>
+        </div>
+        <div class="field">
+          <label for="leaveTime">Wohnung verlassen</label>
+          <input id="leaveTime" type="time" required>
+        </div>
+        <button class="btn btnPrimary" type="submit">Bin draußen</button>
+      </form>
+
+      <form id="returnForm" class="controls hidden">
+        <div class="field">
+          <label for="returnDate">Datum</label>
+          <input id="returnDate" type="date" required>
+        </div>
+        <div class="field">
+          <label for="returnTime">Wieder zuhause</label>
+          <input id="returnTime" type="time" required>
+        </div>
+        <button class="btn btnPrimary" type="submit">Bin zuhause</button>
+        <button id="cancelAway" class="btn btnGhost" type="button">Abbrechen</button>
+      </form>
+
+      <div id="message" class="message"></div>
+    </div>
+  </section>
+
+  <section class="panel monthPanel">
+    <div class="monthHeader">
+      <button id="prevMonth" class="iconBtn" type="button" aria-label="Vorheriger Monat">←</button>
+      <div class="monthCenter">
+        <h2 id="monthTitle">September 2026</h2>
+        <p id="monthTotal">Gesamt 0h 00m</p>
+      </div>
+      <button id="nextMonth" class="iconBtn" type="button" aria-label="Nächster Monat">→</button>
+    </div>
+
+    <div class="chartMeta">
+      <div id="selectedDayLabel" class="selected">Tag auswählen</div>
+      <div id="selectedDayValue" class="hint">Klick auf einen Balken</div>
+    </div>
+
+    <div class="chartWrap">
+      <div class="chartShell">
+        <div class="goalLine" aria-hidden="true"></div>
+        <div class="goalLabel" aria-hidden="true">12h</div>
+        <div id="monthChart" class="chart"></div>
+      </div>
+    </div>
+
+    <div class="chartLegend">
+      <div class="legendKey">
+        <span class="dotTrack"></span><span>24h pro Tag</span>
+        <span class="dotFill"></span><span>Zeit draußen</span>
+        <span style="display:inline-block;width:16px;border-top:2px dashed #dc2626;transform:translateY(-1px)"></span><span>Ziel 12h</span>
+        <span style="display:inline-block;width:14px;height:8px;border-radius:3px;background:rgba(139,92,246,.16)"></span><span>Schlaf 8h</span>
+      </div>
+      <span id="lastDayHint">Skala: 0–24h</span>
+    </div>
+  </section>
+
+  <section class="panel historyPanel">
+    <div class="historyHeader">
+      <h3>Verlauf</h3>
+      <button id="clearBtn" class="btn btnDanger" type="button">Verlauf löschen</button>
+    </div>
+    <div id="emptyState" class="empty">Noch keine Einträge.</div>
+    <div id="history" class="history"></div>
+  </section>
+</div>
+
+<script>
+(() => {
+  const STORAGE_KEY = "outside-monthly-v2";
+  const $ = id => document.getElementById(id);
+
+  const saved = (() => {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "null"); }
+    catch { return null; }
+  })();
+
+  const state = saved && Array.isArray(saved.entries)
+    ? saved
+    : { entries: [], active: null };
+
+  const now = new Date();
+  let viewYear = now.getFullYear();
+  let viewMonth = now.getMonth();
+
+  function save(){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+
+  function iso(d){
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  }
+
+  function timeNow(){
+    const d = new Date();
+    return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+  }
+
+  function makeDate(date,time){
+    const [y,m,d] = date.split("-").map(Number);
+    const [h,min] = time.split(":").map(Number);
+    return new Date(y,m-1,d,h,min,0,0);
+  }
+
+  function fmt(mins){
+    mins = Math.max(0,Math.round(mins || 0));
+    return `${Math.floor(mins/60)}h ${String(mins%60).padStart(2,"0")}m`;
+  }
+
+  function niceDate(s){
+    const [y,m,d] = s.split("-").map(Number);
+    return new Intl.DateTimeFormat("de-AT",{
+      weekday:"short",day:"2-digit",month:"2-digit",year:"numeric"
+    }).format(new Date(y,m-1,d));
+  }
+
+  function setDefaults(){
+    $("leaveDate").value = iso(new Date());
+    $("leaveTime").value = timeNow();
+    $("returnDate").value = iso(new Date());
+    $("returnTime").value = timeNow();
+  }
+
+  function dayTotal(year,month,day){
+    const key = `${year}-${String(month+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+    return state.entries
+      .filter(e => e.leaveDate === key)
+      .reduce((s,e) => s + e.minutes, 0);
+  }
+
+  function renderStatus(){
+    const away = !!state.active;
+
+    $("statusTitle").textContent = away ? "Draußen" : "Zuhause";
+    $("statusMeta").textContent = away
+      ? `Seit ${state.active.leaveTime} Uhr`
+      : "Bereit für den nächsten Ausgang.";
+
+    $("leaveForm").classList.toggle("hidden", away);
+    $("returnForm").classList.toggle("hidden", !away);
+    $("liveBox").classList.toggle("hidden", !away);
+
+    if(away){
+      $("returnDate").value = iso(new Date());
+      $("returnTime").value = timeNow();
+    }
+  }
+
+  function renderChart(){
+    const days = new Date(viewYear,viewMonth+1,0).getDate();
+    const data = Array.from({length:days},(_,i)=>({
+      day:i+1,
+      minutes:dayTotal(viewYear,viewMonth,i+1)
+    }));
+    const monthSum = data.reduce((s,d)=>s+d.minutes,0);
+
+    $("monthTitle").textContent = new Intl.DateTimeFormat("de-AT",{
+      month:"long",year:"numeric"
+    }).format(new Date(viewYear,viewMonth,1));
+
+    $("monthTotal").textContent = "Gesamt " + fmt(monthSum);
+    $("lastDayHint").textContent = days + " Tage";
+    $("selectedDayLabel").textContent = "Tag auswählen";
+    $("selectedDayValue").textContent = "Klick auf einen Balken";
+
+
+    $("monthChart").innerHTML = data.map(d=>{
+      const pct = Math.max(0,Math.min(100,(d.minutes/(24*60))*100));
+      const hours = Math.floor(d.minutes/60);
+      const mins = Math.round(d.minutes%60);
+      const timeText = d.minutes > 0
+        ? `${hours}h ${String(mins).padStart(2,"0")}m`
+        : "";
+
+      const date = new Date(viewYear,viewMonth,d.day);
+      const dayLabel = new Intl.DateTimeFormat("de-AT",{
+        day:"2-digit",month:"2-digit"
+      }).format(date);
+
+      // Exact proportional width: 24h = 100%.
+      // No artificial minimum width, so different durations always have different lengths.
+      const widthStyle = `${pct.toFixed(3)}%`;
+
+      // Shrink text only when the proportional bar is short.
+      const labelSize = pct < 3 ? 7 : pct < 5 ? 8 : pct < 8 ? 9 : 10;
+      const compactTime = d.minutes > 0
+        ? (hours < 1
+            ? `${mins}m`
+            : `${hours}h${String(mins).padStart(2,"0")}m`)
+        : "";
+
+      return `
+        <button class="day${d.minutes>0 ? " hasTime" : ""}" type="button"
+          data-day="${d.day}" title="${d.day}.: ${fmt(d.minutes)}">
+          <span class="dayNum">${dayLabel}</span>
+          <span class="track">
+            <span class="sleepSegment" title="Schlaf: letzte 8h"></span>
+            ${d.minutes>0 ? `
+              <span class="fill" style="width:${widthStyle}">
+                <span class="timeLabel" style="font-size:${labelSize}px">${compactTime}</span>
+              </span>
+            ` : ""}
+          </span>
+        </button>`;
+    }).join("");
+  }
+
+  function renderHistory(){
+    const hist = [...state.entries]
+      .sort((a,b)=>(b.leaveDate+b.leaveTime).localeCompare(a.leaveDate+a.leaveTime));
+
+    $("emptyState").classList.toggle("hidden", hist.length>0);
+
+    $("history").innerHTML = hist.map(e=>`
+      <div class="entry">
+        <div>
+          <div class="entryDate">${niceDate(e.leaveDate)}</div>
+          <div class="entryTime">${e.leaveTime} – ${e.returnTime}</div>
+        </div>
+        <div class="entryDuration">${fmt(e.minutes)}</div>
+        <button class="linkBtn" type="button" data-delete="${e.id}">Löschen</button>
+      </div>
+    `).join("");
+  }
+
+  function render(){
+    renderStatus();
+    renderChart();
+    renderHistory();
+  }
+
+  function updateLive(){
+    if(!state.active){
+      $("liveDuration").textContent = "0h 00m";
+      return;
+    }
+    const start = makeDate(state.active.leaveDate,state.active.leaveTime);
+    $("liveDuration").textContent = fmt((Date.now()-start.getTime())/60000);
+  }
+
+  $("leaveForm").addEventListener("submit",e=>{
+    e.preventDefault();
+    const leaveDate = $("leaveDate").value;
+    const leaveTime = $("leaveTime").value;
+    if(!leaveDate || !leaveTime) return;
+
+    const start = makeDate(leaveDate,leaveTime);
+    if(start.getTime()>Date.now()+60000){
+      $("message").textContent = "Der Zeitpunkt darf nicht in der Zukunft liegen.";
+      return;
+    }
+
+    state.active = {leaveDate,leaveTime};
+    save();
+    $("message").textContent = "";
+    render();
+    updateLive();
+  });
+
+  $("returnForm").addEventListener("submit",e=>{
+    e.preventDefault();
+    if(!state.active) return;
+
+    const returnDate = $("returnDate").value;
+    const returnTime = $("returnTime").value;
+    const start = makeDate(state.active.leaveDate,state.active.leaveTime);
+    const end = makeDate(returnDate,returnTime);
+    const minutes = (end-start)/60000;
+
+    if(minutes<=0){
+      $("message").textContent = "Die Rückkehr muss nach dem Verlassen liegen.";
+      return;
+    }
+
+    state.entries.push({
+      id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()+Math.random()),
+      leaveDate: state.active.leaveDate,
+      leaveTime: state.active.leaveTime,
+      returnDate,
+      returnTime,
+      minutes
+    });
+
+    viewYear = start.getFullYear();
+    viewMonth = start.getMonth();
+    state.active = null;
+    save();
+    setDefaults();
+    $("message").textContent = `Gespeichert: ${fmt(minutes)}`;
+    render();
+    updateLive();
+  });
+
+  $("cancelAway").addEventListener("click",()=>{
+    state.active = null;
+    save();
+    $("message").textContent = "";
+    render();
+    updateLive();
+  });
+
+  $("prevMonth").addEventListener("click",()=>{
+    viewMonth--;
+    if(viewMonth<0){ viewMonth=11; viewYear--; }
+    renderChart();
+  });
+
+  $("nextMonth").addEventListener("click",()=>{
+    viewMonth++;
+    if(viewMonth>11){ viewMonth=0; viewYear++; }
+    renderChart();
+  });
+
+  $("monthChart").addEventListener("click",e=>{
+    const btn = e.target.closest("[data-day]");
+    if(!btn) return;
+
+    document.querySelectorAll(".day").forEach(x=>x.classList.remove("selected"));
+    btn.classList.add("selected");
+
+    const d = Number(btn.dataset.day);
+    const date = new Date(viewYear,viewMonth,d);
+
+    $("selectedDayLabel").textContent = new Intl.DateTimeFormat("de-AT",{
+      weekday:"short",day:"numeric",month:"short"
+    }).format(date);
+
+    $("selectedDayValue").textContent = fmt(dayTotal(viewYear,viewMonth,d));
+  });
+
+  $("history").addEventListener("click",e=>{
+    const btn = e.target.closest("[data-delete]");
+    if(!btn) return;
+    const i = state.entries.findIndex(x=>x.id===btn.dataset.delete);
+    if(i>=0){
+      state.entries.splice(i,1);
+      save();
+      render();
+    }
+  });
+
+  $("clearBtn").addEventListener("click",()=>{
+    if(!confirm("Wirklich den gesamten Verlauf löschen?")) return;
+    state.entries.length = 0;
+    save();
+    render();
+  });
+
+  setDefaults();
+  render();
+  updateLive();
+  setInterval(updateLive,30000);
+})();
+</script>
+</body>
+</html>
